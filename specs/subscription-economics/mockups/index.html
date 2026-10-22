@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Макет: экономика подписки</title>
+<style>
+:root{--bg:#f6f5f2;--card:#fff;--ink:#1d1d1b;--mute:#6b6a65;--line:#e1dfd8;--ok:#1f7a4d;--bad:#b3261e;--warn:#9a6700;--accent:#2d4fd6}
+@media (prefers-color-scheme:dark){:root{--bg:#161614;--card:#201f1d;--ink:#eeede8;--mute:#9b9a93;--line:#34332f;--ok:#5cc490;--bad:#ff8a80;--warn:#e3b341;--accent:#8aa4ff}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,sans-serif}
+main{max-width:860px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:22px;margin:0 0 4px}
+h2{font-size:17px;margin:0 0 12px}
+.sub{color:var(--mute);margin:0 0 20px}
+.stamp{display:inline-block;font-size:12px;border:1px dashed var(--mute);color:var(--mute);padding:2px 8px;border-radius:99px;margin-bottom:12px}
+section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+label{display:block;font-size:14px;color:var(--mute);margin-bottom:4px}
+input,select{width:100%;padding:8px 10px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px}
+.hint{font-size:12px;color:var(--mute);margin-top:4px}
+.verdict{border-left:6px solid var(--bad)}
+.verdict b{font-size:20px;color:var(--bad)}
+.num{border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px}
+.num .v{font-size:24px;font-weight:600}
+.num .f{font-family:ui-monospace,Consolas,monospace;font-size:13px;color:var(--mute);margin:2px 0}
+.num .u{font-size:14px}
+.tag{font-size:12px;padding:1px 8px;border-radius:99px;border:1px solid currentColor}
+.ok{color:var(--ok)}.bad{color:var(--bad)}.warn{color:var(--warn)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--mute);font-weight:500}
+.note{font-size:13px;color:var(--mute)}
+</style>
+</head>
+<body>
+<main>
+<span class="stamp">Макет: цифры примерные, ввод не работает</span>
+<h1>Можно ли масштабировать платное привлечение?</h1>
+<p class="sub">Введите четыре показателя. Всё считается в вашем браузере и нигде не сохраняется.</p>
+
+<section>
+<h2>1. Ваши показатели</h2>
+<div class="grid">
+<div><label>Цена подписки, в месяц</label><input value="10"><div class="hint">Сколько клиент платит в месяц</div></div>
+<div><label>Маржа, %</label><input value="70"><div class="hint">Доля цены, которая остаётся после прямых расходов на клиента</div></div>
+<div><label>Отток, % в месяц</label><input value="6"><div class="hint">Какая доля клиентов уходит за месяц</div></div>
+<div><label>CAC, стоимость привлечения клиента</label><input value="60"><div class="hint">Сколько стоит привлечь одного платящего клиента</div></div>
+</div>
+</section>
+
+<section>
+<h2>2. Пороги (можно менять)</h2>
+<div class="grid">
+<div><label>LTV/CAC не ниже</label><input value="3"></div>
+<div><label>Окупаемость не дольше, месяцев</label><input value="12"></div>
+</div>
+<p class="note">Значения 3 и 12 общепринятые ориентиры из B2B-подписок, а не закон. Автор правила сам называет их «только ориентирами». <a href="#">Источники и ограничения</a></p>
+</section>
+
+<section class="verdict">
+<h2>3. Вердикт</h2>
+<p><b>Пока нет</b></p>
+<p>LTV/CAC равен 1,94 при пороге 3. Окупаемость 8,6 месяца укладывается в 12. Не проходит один порог из двух.</p>
+</section>
+
+<section>
+<h2>4. Цифры и как они посчитаны</h2>
+<div class="num">
+<div class="v">116,67 <span class="note">LTV, сколько денег клиент приносит за всё время</span></div>
+<div class="f">10 × 0,70 ÷ 0,06 = 116,67</div>
+<div class="u">Сравниваем с CAC: клиент должен приносить как минимум в 3 раза больше, чем стоит его привлечение.</div>
+</div>
+<div class="num">
+<div class="v">1,94 <span class="tag bad">порог 3 не пройден</span></div>
+<div class="f">LTV ÷ CAC = 116,67 ÷ 60 = 1,94</div>
+<div class="u">Каждая потраченная на привлечение единица возвращает 1,94 единицы прибыли за всё время жизни клиента.</div>
+</div>
+<div class="num">
+<div class="v">8,6 месяца <span class="tag ok">порог 12 пройден</span></div>
+<div class="f">CAC ÷ (цена × маржа) = 60 ÷ (10 × 0,70) = 8,57</div>
+<div class="u">Через столько месяцев клиент вернёт деньги, потраченные на его привлечение.</div>
+</div>
+<div class="num">
+<div class="v">16,7 месяца <span class="note">средний срок жизни клиента</span></div>
+<div class="f">1 ÷ отток = 1 ÷ 0,06 = 16,67</div>
+<div class="u">Окупаемость 8,6 месяца короче срока жизни: клиент успевает окупиться до ухода.</div>
+</div>
+</section>
+
+<section>
+<h2>5. Что сдвинуть, чтобы дойти до порога</h2>
+<p class="note">Для каждого показателя отдельно: на сколько изменить его, пока остальные три остаются как есть. Отметьте, насколько трудно вам менять каждый.</p>
+<table>
+<tr><th>Показатель</th><th>Сейчас</th><th>Нужно</th><th>Изменение</th><th>Трудность</th></tr>
+<tr><td>Цена</td><td>10</td><td>15,43</td><td>+54,30%</td><td><select><option>легко</option><option>средне</option><option>трудно</option></select></td></tr>
+<tr><td>CAC</td><td>60</td><td>38,88</td><td>−35,20%</td><td><select><option>средне</option><option>легко</option><option>трудно</option></select></td></tr>
+<tr><td>Отток</td><td>6%</td><td>3,88%</td><td>−35,33%</td><td><select><option>средне</option><option>легко</option><option>трудно</option></select></td></tr>
+<tr><td>Маржа</td><td>70%</td><td class="bad">108%</td><td class="bad">недостижимо</td><td><select><option>трудно</option><option>легко</option><option>средне</option></select></td></tr>
+
+</table>
+<p class="note">Нужное значение считается по формулам выше, например для цены: 180 × 0,06 ÷ 0,70 = 15,43, где 180 это CAC × 3. Маржа не может быть выше 100%, поэтому одной маржой порог не достичь.</p>
+<p><b>С учётом ваших отметок проще всего начать с цены:</b> она отмечена как «легко», и ей нужно изменение +54,3%.</p>
+</section>
+</main>
+</body>
+</html>

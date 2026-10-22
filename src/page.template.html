@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Экономика подписки: можно ли масштабировать</title>
+<style>
+:root{--bg:#f6f5f2;--card:#fff;--ink:#1d1d1b;--mute:#6b6a65;--line:#e1dfd8;--ok:#1f7a4d;--bad:#b3261e;--warn:#9a6700;--accent:#2d4fd6}
+@media (prefers-color-scheme:dark){:root{--bg:#161614;--card:#201f1d;--ink:#eeede8;--mute:#9b9a93;--line:#34332f;--ok:#5cc490;--bad:#ff8a80;--warn:#e3b341;--accent:#8aa4ff}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,sans-serif}
+main{max-width:860px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:22px;margin:0 0 4px}
+h2{font-size:17px;margin:0 0 12px}
+h3{font-size:15px;margin:16px 0 6px}
+a{color:var(--accent)}
+.sub{color:var(--mute);margin:0 0 20px}
+section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.grid>div{min-width:0}
+label{display:block;font-size:14px;color:var(--mute);margin-bottom:4px}
+input,select{width:100%;padding:8px 10px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px}
+input[aria-invalid="true"]{border-color:var(--bad)}
+.hint{font-size:12px;color:var(--mute);margin-top:4px}
+.err{font-size:13px;color:var(--bad);margin-top:4px}
+.verdict{border-left:6px solid var(--bad)}
+.verdict.scale{border-left-color:var(--ok)}
+.verdict b{font-size:20px;color:var(--bad)}
+.verdict.scale b{color:var(--ok)}
+.warnbox{border:1px solid var(--warn);color:var(--warn);border-radius:8px;padding:8px 12px;font-size:14px}
+.num{border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px}
+.num .v{font-size:24px;font-weight:600}
+.num .v .note{font-size:13px;font-weight:400}
+.f{font-family:ui-monospace,Consolas,monospace;font-size:13px;color:var(--mute);margin:2px 0;overflow-wrap:anywhere}
+.u{font-size:14px;overflow-wrap:anywhere}
+.tag{font-size:12px;font-weight:400;padding:1px 8px;border-radius:99px;border:1px solid currentColor;white-space:nowrap}
+.ok{color:var(--ok)}.bad{color:var(--bad)}.warn{color:var(--warn)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--mute);font-weight:500}
+tbody.row td.detail{border-bottom:2px solid var(--line)}
+tbody.row tr.main td{border-bottom:0}
+.note{font-size:13px;color:var(--mute)}
+ul.src{padding-left:20px;margin:0 0 8px}
+ul.src li{margin-bottom:8px;overflow-wrap:anywhere}
+@media (max-width:640px){
+table,thead,tbody,tr,td,th{display:block;width:100%}
+thead{position:absolute;left:-9999px}
+tbody.row{border:1px solid var(--line);border-radius:10px;padding:6px 10px;margin-bottom:10px}
+tbody.row td{border-bottom:0;padding:4px 0}
+tbody.row td[data-label]::before{content:attr(data-label) ": ";color:var(--mute)}
+tbody.row td.detail{border-bottom:0;border-top:1px solid var(--line);margin-top:4px;padding-top:8px}
+}
+</style>
+</head>
+<body>
+<main>
+<h1>Можно ли масштабировать платное привлечение?</h1>
+<p class="sub">Введите четыре показателя. Всё считается в вашем браузере, ничего не отправляется и нигде не сохраняется. Суммы в любой одной валюте, на ваш выбор.</p>
+
+<form id="form" novalidate autocomplete="off">
+<section>
+<h2>1. Ваши показатели</h2>
+<div class="grid">
+<div><label for="price">Цена подписки, в месяц</label><input id="price" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-describedby="hint-price err-price"><div class="hint" id="hint-price">Сколько клиент платит в месяц</div><div class="err" id="err-price" role="alert" hidden></div></div>
+<div><label for="margin">Маржа, %</label><input id="margin" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-describedby="hint-margin err-margin"><div class="hint" id="hint-margin">Доля цены, которая остаётся после прямых расходов на клиента</div><div class="err" id="err-margin" role="alert" hidden></div></div>
+<div><label for="churn">Отток, % в месяц</label><input id="churn" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-describedby="hint-churn err-churn"><div class="hint" id="hint-churn">Какая доля клиентов уходит за месяц</div><div class="err" id="err-churn" role="alert" hidden></div></div>
+<div><label for="cac">CAC, стоимость привлечения клиента</label><input id="cac" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-describedby="hint-cac err-cac"><div class="hint" id="hint-cac">Сколько стоит привлечь одного платящего клиента</div><div class="err" id="err-cac" role="alert" hidden></div></div>
+</div>
+</section>
+
+<section>
+<h2>2. Пороги (можно менять)</h2>
+<div class="grid">
+<div><label for="ratioThreshold">LTV/CAC не ниже</label><input id="ratioThreshold" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="3" aria-describedby="err-ratioThreshold"><div class="err" id="err-ratioThreshold" role="alert" hidden></div></div>
+<div><label for="paybackThreshold">Окупаемость не дольше, месяцев</label><input id="paybackThreshold" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="12" aria-describedby="err-paybackThreshold"><div class="err" id="err-paybackThreshold" role="alert" hidden></div></div>
+</div>
+<p class="note">Значения 3 и 12 общепринятые ориентиры из B2B-подписок, а не закон. Автор правила сам называет их «только ориентирами». <a href="#sources">Источники и ограничения</a></p>
+</section>
+
+<section id="pending"><p id="pending-text" class="note"></p><div class="err" id="err-general" role="alert" hidden></div></section>
+
+<div id="results" hidden>
+<section id="verdict" class="verdict" aria-live="polite">
+<h2>3. Вердикт</h2>
+<p><b id="verdict-title"></b></p>
+<p id="verdict-text"></p>
+<p id="warning" class="warnbox" hidden></p>
+</section>
+
+<section>
+<h2>4. Цифры и как они посчитаны</h2>
+<div id="figures"></div>
+</section>
+
+<section>
+<h2>5. Что сдвинуть, чтобы дойти до порога</h2>
+<p id="nochanges" hidden></p>
+<div id="changes-block">
+<p class="note">Для каждого показателя отдельно: на сколько изменить его, пока остальные три остаются как есть. Отметьте, насколько трудно вам менять каждый.</p>
+<table>
+<thead><tr><th>Показатель</th><th>Сейчас</th><th>Нужно</th><th>Изменение</th><th>Трудность</th><th>Порядок</th></tr></thead>
+<tbody class="row" data-key="price">
+<tr class="main"><td data-label="Показатель">Цена</td><td data-label="Сейчас" data-slot="current"></td><td data-label="Нужно" data-slot="target"></td><td data-label="Изменение" data-slot="change"></td><td data-label="Трудность"><select id="diff-price" aria-label="Трудность изменить цену"><option value="easy">легко</option><option value="medium" selected>средне</option><option value="hard">трудно</option></select></td><td data-label="Порядок" data-slot="rank"></td></tr>
+<tr><td class="detail" colspan="6"><div class="f" data-slot="formula"></div><div class="f" data-slot="changeFormula"></div><div class="f" data-slot="score"></div><div class="u bad" data-slot="reason"></div><div class="u" data-slot="usefulness"></div></td></tr>
+</tbody>
+<tbody class="row" data-key="cac">
+<tr class="main"><td data-label="Показатель">CAC</td><td data-label="Сейчас" data-slot="current"></td><td data-label="Нужно" data-slot="target"></td><td data-label="Изменение" data-slot="change"></td><td data-label="Трудность"><select id="diff-cac" aria-label="Трудность изменить CAC"><option value="easy">легко</option><option value="medium" selected>средне</option><option value="hard">трудно</option></select></td><td data-label="Порядок" data-slot="rank"></td></tr>
+<tr><td class="detail" colspan="6"><div class="f" data-slot="formula"></div><div class="f" data-slot="changeFormula"></div><div class="f" data-slot="score"></div><div class="u bad" data-slot="reason"></div><div class="u" data-slot="usefulness"></div></td></tr>
+</tbody>
+<tbody class="row" data-key="churn">
+<tr class="main"><td data-label="Показатель">Отток</td><td data-label="Сейчас" data-slot="current"></td><td data-label="Нужно" data-slot="target"></td><td data-label="Изменение" data-slot="change"></td><td data-label="Трудность"><select id="diff-churn" aria-label="Трудность изменить отток"><option value="easy">легко</option><option value="medium" selected>средне</option><option value="hard">трудно</option></select></td><td data-label="Порядок" data-slot="rank"></td></tr>
+<tr><td class="detail" colspan="6"><div class="f" data-slot="formula"></div><div class="f" data-slot="changeFormula"></div><div class="f" data-slot="score"></div><div class="u bad" data-slot="reason"></div><div class="u" data-slot="usefulness"></div></td></tr>
+</tbody>
+<tbody class="row" data-key="margin">
+<tr class="main"><td data-label="Показатель">Маржа</td><td data-label="Сейчас" data-slot="current"></td><td data-label="Нужно" data-slot="target"></td><td data-label="Изменение" data-slot="change"></td><td data-label="Трудность"><select id="diff-margin" aria-label="Трудность изменить маржу"><option value="easy">легко</option><option value="medium" selected>средне</option><option value="hard">трудно</option></select></td><td data-label="Порядок" data-slot="rank"></td></tr>
+<tr><td class="detail" colspan="6"><div class="f" data-slot="formula"></div><div class="f" data-slot="changeFormula"></div><div class="f" data-slot="score"></div><div class="u bad" data-slot="reason"></div><div class="u" data-slot="usefulness"></div></td></tr>
+</tbody>
+</table>
+<p class="note">Нужное значение округляется в сторону выполнения порога (цена и маржа вверх, CAC и отток вниз), поэтому если ввести его обратно, вердикт будет «масштабировать». Порядок считается так: оценка = размер изменения в процентах × вес трудности (легко 1, средне 2, трудно 3); чем меньше оценка, тем проще начать. При равных оценках порядок: цена, CAC, отток, маржа.</p>
+<p><b id="start"></b></p>
+<p id="order" class="note"></p>
+</div>
+</section>
+</div>
+</form>
+
+<section id="sources">
+<h2>Источники и ограничения</h2>
+<p>Оба порога, 3 для LTV/CAC и 12 месяцев для окупаемости, это ориентиры, а не закон. Автор правила, Дэвид Скок, сам называет их «только ориентирами» и пишет, что бывают ситуации, когда их разумно нарушать. Откуда взято число 3, в его материалах не объясняется. Для потребительских подписок надёжных порогов мы не нашли: источники ниже описывают бизнес-подписки (B2B). Поэтому пороги можно менять.</p>
+<h3>Что говорят источники</h3>
+<ul class="src">
+<li><a href="https://www.forentrepreneurs.com/saas-metrics-2/" target="_blank" rel="noopener noreferrer">Skok, SaaS Metrics 2.0</a>: LTV/CAC выше 3, окупаемость больше 12 месяцев означает слабую прибыльность; это ориентиры, многие здоровые компании на старте их не достигают.</li>
+<li><a href="https://www.forentrepreneurs.com/saas-metrics-2-definitions/" target="_blank" rel="noopener noreferrer">Skok, определения метрик</a>: порог 3 предполагает простую формулу LTV и валовую маржу не ниже 80%; цель в 12 месяцев взята из текста 2011 года, когда капитал был дорогим, а около 20 месяцев он называет довольно обычным для здоровых компаний.</li>
+<li><a href="https://www.bvp.com/atlas/scaling-to-100-million" target="_blank" rel="noopener noreferrer">Bessemer, Scaling to $100 million</a>: вкладываться в привлечение при LTV/CAC от 3, при значении сильно ниже 3 продолжать эксперименты; цели по окупаемости: малый бизнес до 12 месяцев, средний до 18, крупный до 24. Данные взяты из портфеля облачных компаний Bessemer, это не случайная выборка рынка.</li>
+<li><a href="https://a16z.com/16-startup-metrics/" target="_blank" rel="noopener noreferrer">a16z, 16 Startup Metrics</a>: LTV это приведённая стоимость будущей чистой прибыли; CAC должен включать все расходы на привлечение; при коротком ряде данных предлагается считать LTV на 12 и 24 месяца. Числового порога 3 в статье нет.</li>
+<li><a href="https://blog.asmartbear.com/ltv-cancellations-metric/" target="_blank" rel="noopener noreferrer">Jason Cohen, LTV и отток</a>: формула LTV через отток предполагает платежи без конца и завышает значение, из-за чего «3 к 1» выглядит здоровым, когда это не так.</li>
+<li><a href="https://www.saas-capital.com/blog-posts/a-warning-about-saas-lifetime-value-calculations/" target="_blank" rel="noopener noreferrer">SaaS Capital, предупреждение об LTV</a>: расчёт LTV очень чувствителен к оттоку, а отток нестабилен.</li>
+</ul>
+<h3>Ограничения этого калькулятора</h3>
+<ul class="src">
+<li>LTV считается как цена × маржа ÷ отток: отток считается постоянным, а клиент платит, пока не уйдёт. При оттоке ниже 1% в месяц калькулятор об этом предупреждает.</li>
+<li>Результат это проверка «проходят ли ваши цифры пороги», а не прогноз.</li>
+<li>Маржа должна быть той, что остаётся после прямых расходов на клиента, а CAC должен включать все расходы на привлечение.</li>
+<li>Все суммы в одной валюте. Предоплата и денежный поток не учитываются.</li>
+<li>Изменения в таблице «что сдвинуть» считаются по одному показателю, остальные три остаются как есть; сочетания изменений не считаются.</li>
+</ul>
+</section>
+</main>
+
+<script>
+{{CALC}}
+</script>
+<script>
+{{VIEW}}
+</script>
+<script>
+(function () {
+  var FIELDS = ['price', 'margin', 'churn', 'cac', 'ratioThreshold', 'paybackThreshold'];
+  var ROWS = ['price', 'cac', 'churn', 'margin'];
+  var SLOTS = ['current', 'target', 'change', 'rank', 'formula', 'changeFormula', 'score', 'reason', 'usefulness'];
+  var touched = {};
+
+  function byId(id) {
+    return document.getElementById(id);
+  }
+
+  function make(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) {
+      node.className = className;
+    }
+    if (text !== undefined) {
+      node.textContent = text;
+    }
+    return node;
+  }
+
+  function setBlock(node, text) {
+    node.textContent = text || '';
+    node.hidden = !text;
+  }
+
+  function readRaw() {
+    var raw = {};
+    FIELDS.forEach(function (field) {
+      raw[field] = byId(field).value;
+    });
+    return raw;
+  }
+
+  function readDifficulty() {
+    var chosen = {};
+    ROWS.forEach(function (key) {
+      chosen[key] = byId('diff-' + key).value;
+    });
+    return chosen;
+  }
+
+  function showErrors(raw, errors) {
+    var shown = 0;
+    FIELDS.forEach(function (field) {
+      var message = errors[field];
+      var visible = Boolean(message) && (raw[field].trim() !== '' || touched[field]);
+      setBlock(byId('err-' + field), visible ? message : '');
+      byId(field).setAttribute('aria-invalid', visible ? 'true' : 'false');
+      if (visible) {
+        shown++;
+      }
+    });
+    setBlock(byId('err-general'), errors.general || '');
+    return shown + (errors.general ? 1 : 0);
+  }
+
+  function clearErrors() {
+    showErrors({ price: '', margin: '', churn: '', cac: '', ratioThreshold: '', paybackThreshold: '' }, {});
+  }
+
+  function renderFigures(figures) {
+    var box = byId('figures');
+    box.textContent = '';
+    figures.forEach(function (figure) {
+      var card = make('div', 'num');
+      var head = make('div', 'v', figure.value + ' ');
+      head.appendChild(make('span', 'note', figure.label));
+      if (figure.tag) {
+        head.appendChild(document.createTextNode(' '));
+        head.appendChild(make('span', 'tag ' + (figure.tag.pass ? 'ok' : 'bad'), figure.tag.text));
+      }
+      card.appendChild(head);
+      card.appendChild(make('div', 'f', figure.formula));
+      card.appendChild(make('div', 'u', figure.usefulness));
+      box.appendChild(card);
+    });
+  }
+
+  function renderRow(row) {
+    var body = document.querySelector('tbody[data-key="' + row.key + '"]');
+    var values = {
+      current: row.current,
+      target: row.target,
+      change: row.change,
+      rank: row.rank === null ? '—' : String(row.rank),
+      formula: row.formula,
+      changeFormula: row.changeFormula,
+      score: row.scoreText,
+      reason: row.reason,
+      usefulness: row.usefulness
+    };
+    SLOTS.forEach(function (slot) {
+      var node = body.querySelector('[data-slot="' + slot + '"]');
+      node.textContent = values[slot] || '';
+      if (node.tagName !== 'TD') {
+        node.hidden = !values[slot];
+      }
+    });
+    ['target', 'change'].forEach(function (slot) {
+      var node = body.querySelector('td[data-slot="' + slot + '"]');
+      node.className = row.reachable ? '' : 'bad';
+    });
+  }
+
+  function renderResults(result) {
+    byId('verdict').className = 'verdict ' + result.verdict.kind;
+    byId('verdict-title').textContent = result.verdict.title;
+    byId('verdict-text').textContent = result.verdict.text;
+    setBlock(byId('warning'), result.warning);
+    renderFigures(result.figures);
+    setBlock(byId('nochanges'), result.noChanges);
+    byId('changes-block').hidden = result.changes === null;
+    if (result.changes) {
+      result.changes.rows.forEach(renderRow);
+      byId('start').textContent = result.changes.start || '';
+      byId('order').textContent = result.changes.orderText;
+    }
+  }
+
+  function render() {
+    var raw = readRaw();
+    var result = SubEconView.describe(raw, readDifficulty());
+    if (!result.ok) {
+      var shown = showErrors(raw, result.errors);
+      byId('results').hidden = true;
+      byId('pending').hidden = false;
+      byId('pending-text').textContent = shown > 0
+        ? 'Цифры и вердикт скрыты, пока в полях есть ошибки.'
+        : 'Введите все четыре показателя, и здесь появятся вердикт и цифры.';
+      return;
+    }
+    clearErrors();
+    byId('pending').hidden = true;
+    byId('results').hidden = false;
+    renderResults(result);
+  }
+
+  byId('form').addEventListener('submit', function (event) {
+    event.preventDefault();
+  });
+  function markTouched(event) {
+    if (FIELDS.indexOf(event.target.id) !== -1) {
+      touched[event.target.id] = true;
+    }
+    render();
+  }
+
+  byId('form').addEventListener('input', markTouched);
+  byId('form').addEventListener('focusout', markTouched);
+  render();
+})();
+</script>
+</body>
+</html>
