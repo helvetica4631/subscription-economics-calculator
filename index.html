@@ -1,0 +1,827 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Экономика подписки: можно ли масштабировать</title>
+<style>
+:root{--bg:#f6f5f2;--card:#fff;--ink:#1d1d1b;--mute:#6b6a65;--line:#e1dfd8;--ok:#1f7a4d;--bad:#b3261e;--warn:#9a6700;--accent:#2d4fd6}
+@media (prefers-color-scheme:dark){:root{--bg:#161614;--card:#201f1d;--ink:#eeede8;--mute:#9b9a93;--line:#34332f;--ok:#5cc490;--bad:#ff8a80;--warn:#e3b341;--accent:#8aa4ff}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,sans-serif}
+main{max-width:860px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:22px;margin:0 0 4px}
+h2{font-size:17px;margin:0 0 12px}
+h3{font-size:15px;margin:16px 0 6px}
+a{color:var(--accent)}
+.sub{color:var(--mute);margin:0 0 20px}
+section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.grid>div{min-width:0}
+label{display:block;font-size:14px;color:var(--mute);margin-bottom:4px}
+input,select{width:100%;padding:8px 10px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px}
+input[aria-invalid="true"]{border-color:var(--bad)}
+.hint{font-size:12px;color:var(--mute);margin-top:4px}
+.err{font-size:13px;color:var(--bad);margin-top:4px}
+.verdict{border-left:6px solid var(--bad)}
+.verdict.scale{border-left-color:var(--ok)}
+.verdict b{font-size:20px;color:var(--bad)}
+.verdict.scale b{color:var(--ok)}
+.warnbox{border:1px solid var(--warn);color:var(--warn);border-radius:8px;padding:8px 12px;font-size:14px}
+.num{border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px}
+.num .v{font-size:24px;font-weight:600}
+.num .v .note{font-size:13px;font-weight:400}
+.f{font-family:ui-monospace,Consolas,monospace;font-size:13px;color:var(--mute);margin:2px 0;overflow-wrap:anywhere}
+.u{font-size:14px;overflow-wrap:anywhere}
+.tag{font-size:12px;font-weight:400;padding:1px 8px;border-radius:99px;border:1px solid currentColor;white-space:nowrap}
+.ok{color:var(--ok)}.bad{color:var(--bad)}.warn{color:var(--warn)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--mute);font-weight:500}
+tbody.row td.detail{border-bottom:2px solid var(--line)}
+tbody.row tr.main td{border-bottom:0}
+.note{font-size:13px;color:var(--mute)}
+ul.src{padding-left:20px;margin:0 0 8px}
+ul.src li{margin-bottom:8px;overflow-wrap:anywhere}
+@media (max-width:640px){
+table,thead,tbody,tr,td,th{display:block;width:100%}
+thead{position:absolute;left:-9999px}
+tbody.row{border:1px solid var(--line);border-radius:10px;padding:6px 10px;margin-bottom:10px}
+tbody.row td{border-bottom:0;padding:4px 0}
+tbody.row td[data-label]::before{content:attr(data-label) ": ";color:var(--mute)}
+tbody.row td.detail{border-bottom:0;border-top:1px solid var(--line);margin-top:4px;padding-top:8px}
+}
+</style>
+</head>
+<body>
+<main>
+<h1>Можно ли масштабировать платное привлечение?</h1>
+<p class="sub">Введите четыре показателя. Всё считается в вашем браузере, ничего не отправляется и нигде не сохраняется. Суммы в любой одной валюте, на ваш выбор.</p>
+
+<form id="form" novalidate autocomplete="off">
+<section>
+<h2>1. Ваши показатели</h2>
+<div class="grid">
+<div><label for="price">Цена подписки, в месяц</label><input id="price" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-describedby="hint-price err-price"><div class="hint" id="hint-price">Сколько клиент платит в месяц</div><div class="err" id="err-price" role="alert" hidden></div></div>
+<div><label for="margin">Маржа, %</label><input id="margin" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-describedby="hint-margin err-margin"><div class="hint" id="hint-margin">Доля цены, которая остаётся после прямых расходов на клиента</div><div class="err" id="err-margin" role="alert" hidden></div></div>
+<div><label for="churn">Отток, % в месяц</label><input id="churn" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-describedby="hint-churn err-churn"><div class="hint" id="hint-churn">Какая доля клиентов уходит за месяц</div><div class="err" id="err-churn" role="alert" hidden></div></div>
+<div><label for="cac">CAC, стоимость привлечения клиента</label><input id="cac" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-describedby="hint-cac err-cac"><div class="hint" id="hint-cac">Сколько стоит привлечь одного платящего клиента</div><div class="err" id="err-cac" role="alert" hidden></div></div>
+</div>
+</section>
+
+<section>
+<h2>2. Пороги (можно менять)</h2>
+<div class="grid">
+<div><label for="ratioThreshold">LTV/CAC не ниже</label><input id="ratioThreshold" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="3" aria-describedby="err-ratioThreshold"><div class="err" id="err-ratioThreshold" role="alert" hidden></div></div>
+<div><label for="paybackThreshold">Окупаемость не дольше, месяцев</label><input id="paybackThreshold" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="12" aria-describedby="err-paybackThreshold"><div class="err" id="err-paybackThreshold" role="alert" hidden></div></div>
+</div>
+<p class="note">Значения 3 и 12 общепринятые ориентиры из B2B-подписок, а не закон. Автор правила сам называет их «только ориентирами». <a href="#sources">Источники и ограничения</a></p>
+</section>
+
+<section id="pending"><p id="pending-text" class="note"></p><div class="err" id="err-general" role="alert" hidden></div></section>
+
+<div id="results" hidden>
+<section id="verdict" class="verdict" aria-live="polite">
+<h2>3. Вердикт</h2>
+<p><b id="verdict-title"></b></p>
+<p id="verdict-text"></p>
+<p id="warning" class="warnbox" hidden></p>
+</section>
+
+<section>
+<h2>4. Цифры и как они посчитаны</h2>
+<div id="figures"></div>
+</section>
+
+<section>
+<h2>5. Что сдвинуть, чтобы дойти до порога</h2>
+<p id="nochanges" hidden></p>
+<div id="changes-block">
+<p class="note">Для каждого показателя отдельно: на сколько изменить его, пока остальные три остаются как есть. Отметьте, насколько трудно вам менять каждый.</p>
+<table>
+<thead><tr><th>Показатель</th><th>Сейчас</th><th>Нужно</th><th>Изменение</th><th>Трудность</th><th>Порядок</th></tr></thead>
+<tbody class="row" data-key="price">
+<tr class="main"><td data-label="Показатель">Цена</td><td data-label="Сейчас" data-slot="current"></td><td data-label="Нужно" data-slot="target"></td><td data-label="Изменение" data-slot="change"></td><td data-label="Трудность"><select id="diff-price" aria-label="Трудность изменить цену"><option value="easy">легко</option><option value="medium" selected>средне</option><option value="hard">трудно</option></select></td><td data-label="Порядок" data-slot="rank"></td></tr>
+<tr><td class="detail" colspan="6"><div class="f" data-slot="formula"></div><div class="f" data-slot="changeFormula"></div><div class="f" data-slot="score"></div><div class="u bad" data-slot="reason"></div><div class="u" data-slot="usefulness"></div></td></tr>
+</tbody>
+<tbody class="row" data-key="cac">
+<tr class="main"><td data-label="Показатель">CAC</td><td data-label="Сейчас" data-slot="current"></td><td data-label="Нужно" data-slot="target"></td><td data-label="Изменение" data-slot="change"></td><td data-label="Трудность"><select id="diff-cac" aria-label="Трудность изменить CAC"><option value="easy">легко</option><option value="medium" selected>средне</option><option value="hard">трудно</option></select></td><td data-label="Порядок" data-slot="rank"></td></tr>
+<tr><td class="detail" colspan="6"><div class="f" data-slot="formula"></div><div class="f" data-slot="changeFormula"></div><div class="f" data-slot="score"></div><div class="u bad" data-slot="reason"></div><div class="u" data-slot="usefulness"></div></td></tr>
+</tbody>
+<tbody class="row" data-key="churn">
+<tr class="main"><td data-label="Показатель">Отток</td><td data-label="Сейчас" data-slot="current"></td><td data-label="Нужно" data-slot="target"></td><td data-label="Изменение" data-slot="change"></td><td data-label="Трудность"><select id="diff-churn" aria-label="Трудность изменить отток"><option value="easy">легко</option><option value="medium" selected>средне</option><option value="hard">трудно</option></select></td><td data-label="Порядок" data-slot="rank"></td></tr>
+<tr><td class="detail" colspan="6"><div class="f" data-slot="formula"></div><div class="f" data-slot="changeFormula"></div><div class="f" data-slot="score"></div><div class="u bad" data-slot="reason"></div><div class="u" data-slot="usefulness"></div></td></tr>
+</tbody>
+<tbody class="row" data-key="margin">
+<tr class="main"><td data-label="Показатель">Маржа</td><td data-label="Сейчас" data-slot="current"></td><td data-label="Нужно" data-slot="target"></td><td data-label="Изменение" data-slot="change"></td><td data-label="Трудность"><select id="diff-margin" aria-label="Трудность изменить маржу"><option value="easy">легко</option><option value="medium" selected>средне</option><option value="hard">трудно</option></select></td><td data-label="Порядок" data-slot="rank"></td></tr>
+<tr><td class="detail" colspan="6"><div class="f" data-slot="formula"></div><div class="f" data-slot="changeFormula"></div><div class="f" data-slot="score"></div><div class="u bad" data-slot="reason"></div><div class="u" data-slot="usefulness"></div></td></tr>
+</tbody>
+</table>
+<p class="note">Нужное значение округляется в сторону выполнения порога (цена и маржа вверх, CAC и отток вниз), поэтому если ввести его обратно, вердикт будет «масштабировать». Порядок считается так: оценка = размер изменения в процентах × вес трудности (легко 1, средне 2, трудно 3); чем меньше оценка, тем проще начать. При равных оценках порядок: цена, CAC, отток, маржа.</p>
+<p><b id="start"></b></p>
+<p id="order" class="note"></p>
+</div>
+</section>
+</div>
+</form>
+
+<section id="sources">
+<h2>Источники и ограничения</h2>
+<p>Оба порога, 3 для LTV/CAC и 12 месяцев для окупаемости, это ориентиры, а не закон. Автор правила, Дэвид Скок, сам называет их «только ориентирами» и пишет, что бывают ситуации, когда их разумно нарушать. Откуда взято число 3, в его материалах не объясняется. Для потребительских подписок надёжных порогов мы не нашли: источники ниже описывают бизнес-подписки (B2B). Поэтому пороги можно менять.</p>
+<h3>Что говорят источники</h3>
+<ul class="src">
+<li><a href="https://www.forentrepreneurs.com/saas-metrics-2/" target="_blank" rel="noopener noreferrer">Skok, SaaS Metrics 2.0</a>: LTV/CAC выше 3, окупаемость больше 12 месяцев означает слабую прибыльность; это ориентиры, многие здоровые компании на старте их не достигают.</li>
+<li><a href="https://www.forentrepreneurs.com/saas-metrics-2-definitions/" target="_blank" rel="noopener noreferrer">Skok, определения метрик</a>: порог 3 предполагает простую формулу LTV и валовую маржу не ниже 80%; цель в 12 месяцев взята из текста 2011 года, когда капитал был дорогим, а около 20 месяцев он называет довольно обычным для здоровых компаний.</li>
+<li><a href="https://www.bvp.com/atlas/scaling-to-100-million" target="_blank" rel="noopener noreferrer">Bessemer, Scaling to $100 million</a>: вкладываться в привлечение при LTV/CAC от 3, при значении сильно ниже 3 продолжать эксперименты; цели по окупаемости: малый бизнес до 12 месяцев, средний до 18, крупный до 24. Данные взяты из портфеля облачных компаний Bessemer, это не случайная выборка рынка.</li>
+<li><a href="https://a16z.com/16-startup-metrics/" target="_blank" rel="noopener noreferrer">a16z, 16 Startup Metrics</a>: LTV это приведённая стоимость будущей чистой прибыли; CAC должен включать все расходы на привлечение; при коротком ряде данных предлагается считать LTV на 12 и 24 месяца. Числового порога 3 в статье нет.</li>
+<li><a href="https://blog.asmartbear.com/ltv-cancellations-metric/" target="_blank" rel="noopener noreferrer">Jason Cohen, LTV и отток</a>: формула LTV через отток предполагает платежи без конца и завышает значение, из-за чего «3 к 1» выглядит здоровым, когда это не так.</li>
+<li><a href="https://www.saas-capital.com/blog-posts/a-warning-about-saas-lifetime-value-calculations/" target="_blank" rel="noopener noreferrer">SaaS Capital, предупреждение об LTV</a>: расчёт LTV очень чувствителен к оттоку, а отток нестабилен.</li>
+</ul>
+<h3>Ограничения этого калькулятора</h3>
+<ul class="src">
+<li>LTV считается как цена × маржа ÷ отток: отток считается постоянным, а клиент платит, пока не уйдёт. При оттоке ниже 1% в месяц калькулятор об этом предупреждает.</li>
+<li>Результат это проверка «проходят ли ваши цифры пороги», а не прогноз.</li>
+<li>Маржа должна быть той, что остаётся после прямых расходов на клиента, а CAC должен включать все расходы на привлечение.</li>
+<li>Все суммы в одной валюте. Предоплата и денежный поток не учитываются.</li>
+<li>Изменения в таблице «что сдвинуть» считаются по одному показателю, остальные три остаются как есть; сочетания изменений не считаются.</li>
+</ul>
+</section>
+</main>
+
+<script>
+(function (root, factory) {
+  var api = factory();
+  if (typeof module === 'object' && module && module.exports) {
+    module.exports = api;
+  } else {
+    root.SubEconCalc = api;
+  }
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  function roundHalfUp(x, digits) {
+    var factor = Math.pow(10, digits);
+    var sign = x < 0 ? -1 : 1;
+    var result = (sign * Math.round(Math.abs(x) * factor * (1 + 1e-12))) / factor;
+    return result === 0 ? 0 : result;
+  }
+
+  function ceilTo(x, digits) {
+    var factor = Math.pow(10, digits);
+    return Math.ceil(x * factor * (1 - 1e-12)) / factor;
+  }
+
+  function floorTo(x, digits) {
+    var factor = Math.pow(10, digits);
+    return Math.floor(x * factor * (1 + 1e-12)) / factor;
+  }
+
+  function formatRu(x, digits) {
+    return roundHalfUp(x, digits).toFixed(digits).replace('.', ',');
+  }
+
+  var FIELDS = ['price', 'margin', 'churn', 'cac', 'ratioThreshold', 'paybackThreshold'];
+  var PERCENT_FIELDS = { margin: true, churn: true };
+  var EMPTY_ERROR = 'Поле пустое. Введите число.';
+
+  var AMBIGUOUS_ERROR = 'Неоднозначная запись: тысячи или дробь? Введите число без разделителя тысяч или с другим числом знаков после запятой.';
+
+  function parseNumber(text) {
+    if (text === null || text === undefined) {
+      return { ok: false, error: EMPTY_ERROR };
+    }
+    var cleaned = String(text).replace(/\s+/g, '');
+    if (cleaned === '') {
+      return { ok: false, error: EMPTY_ERROR };
+    }
+    var match = /^(-?)(\d+[.,]?\d*|[.,]\d+)$/.exec(cleaned);
+    if (!match) {
+      return { ok: false, error: 'Введите число: цифры и один разделитель (запятая или точка), без знаков и букв.' };
+    }
+    if (typeof text !== 'number' && /^\d{1,3}[.,]\d{3}$/.test(match[2])) {
+      return { ok: false, error: AMBIGUOUS_ERROR };
+    }
+    var value = Number(match[2].replace(',', '.'));
+    if (!isFinite(value)) {
+      return { ok: false, error: 'Слишком большое число.' };
+    }
+    return { ok: true, value: match[1] ? -value : value };
+  }
+
+  function validateInputs(inputs) {
+    var errors = {};
+    var parsed = {};
+    FIELDS.forEach(function (field) {
+      var r = parseNumber(inputs ? inputs[field] : undefined);
+      if (!r.ok) {
+        errors[field] = r.error;
+      } else if (!(r.value > 0)) {
+        errors[field] = 'Должно быть больше нуля.';
+      } else if (PERCENT_FIELDS[field] && r.value > 100) {
+        errors[field] = 'Не может быть больше 100%.';
+      } else {
+        parsed[field] = r.value;
+      }
+    });
+    if (Object.keys(errors).length > 0) {
+      return { ok: false, errors: errors };
+    }
+    return {
+      ok: true,
+      values: {
+        p: parsed.price,
+        m: parsed.margin / 100,
+        c: parsed.churn / 100,
+        k: parsed.cac,
+        R: parsed.ratioThreshold,
+        T: parsed.paybackThreshold
+      }
+    };
+  }
+
+  var TOLERANCE = 1e-9;
+  var LOW_CHURN = 0.01;
+
+  function sameAs(value, reference) {
+    return Math.abs(value - reference) < TOLERANCE * Math.abs(reference);
+  }
+
+  function atLeast(value, reference) {
+    return value >= reference || sameAs(value, reference);
+  }
+
+  function atMost(value, reference) {
+    return value <= reference || sameAs(value, reference);
+  }
+
+  function neededChange(rawTarget, current, scale, up) {
+    var shown = up ? ceilTo(rawTarget * scale, 2) : floorTo(rawTarget * scale, 2);
+    if (!(shown > 0)) {
+      return { status: 'unreachable', reason: 'zero', target: null };
+    }
+    var currentShown = current * scale;
+    var exact = ((shown - currentShown) / currentShown) * 100;
+    return {
+      status: 'needed',
+      target: shown,
+      changePct: roundHalfUp(exact, 2),
+      changePctExact: exact
+    };
+  }
+
+  function buildChanges(v, paybackPass) {
+    var priceTarget = Math.max((v.R * v.k * v.c) / v.m, v.k / (v.T * v.m));
+    var marginTarget = Math.max((v.R * v.k * v.c) / v.p, v.k / (v.T * v.p));
+    var cacTarget = Math.min((v.p * v.m) / (v.R * v.c), v.T * v.p * v.m);
+    var churnTarget = (v.p * v.m) / (v.R * v.k);
+    var margin;
+    if (marginTarget > 1 && !sameAs(marginTarget, 1)) {
+      margin = { status: 'unreachable', reason: 'over100', target: marginTarget * 100 };
+    } else {
+      margin = neededChange(Math.min(marginTarget, 1), v.m, 100, true);
+    }
+    var churn;
+    if (!paybackPass) {
+      churn = { status: 'unreachable', reason: 'payback', target: null };
+    } else {
+      churn = neededChange(churnTarget, v.c, 100, false);
+    }
+    return {
+      price: neededChange(priceTarget, v.p, 1, true),
+      margin: margin,
+      cac: neededChange(cacTarget, v.k, 1, false),
+      churn: churn
+    };
+  }
+
+  function calculate(inputs) {
+    var checked = validateInputs(inputs);
+    if (!checked.ok) {
+      return checked;
+    }
+    var v = checked.values;
+    var lifetime = 1 / v.c;
+    var ltv = (v.p * v.m) / v.c;
+    var ltvCac = ltv / v.k;
+    var payback = v.k / (v.p * v.m);
+    if (![lifetime, ltv, ltvCac, payback].every(isFinite)) {
+      return { ok: false, errors: { general: 'Числа слишком большие или слишком малые для расчёта.' } };
+    }
+    var ratioPass = atLeast(ltvCac, v.R);
+    var paybackPass = atMost(payback, v.T);
+    var scale = ratioPass && paybackPass;
+    return {
+      ok: true,
+      values: v,
+      lifetime: lifetime,
+      ltv: ltv,
+      ltvCac: ltvCac,
+      payback: payback,
+      ratioPass: ratioPass,
+      paybackPass: paybackPass,
+      verdict: scale ? 'scale' : 'wait',
+      lowChurnWarning: v.c < LOW_CHURN && !sameAs(v.c, LOW_CHURN),
+      noChangesNeeded: scale,
+      changes: scale ? null : buildChanges(v, paybackPass)
+    };
+  }
+
+  function wrongSide(shown, reference, side, passes) {
+    if (side === 'atLeast') {
+      return passes ? shown < reference : shown >= reference;
+    }
+    return passes ? shown > reference : shown <= reference;
+  }
+
+  function formatNearThreshold(value, digits, reference, passes, kind) {
+    var side = kind;
+    if (!side) {
+      if (passes) {
+        return formatRu(value, digits);
+      }
+      side = value < reference ? 'atLeast' : 'atMost';
+    }
+    var used = digits;
+    while (used < 6 && wrongSide(roundHalfUp(value, used), reference, side, passes)) {
+      used++;
+    }
+    return formatRu(value, used);
+  }
+
+  var TIE_ORDER = ['price', 'cac', 'churn', 'margin'];
+  var WEIGHTS = { easy: 1, medium: 2, hard: 3 };
+
+  function rankChanges(changes, difficulty) {
+    var chosen = difficulty || {};
+    var scores = {};
+    var order = [];
+    var unreachable = [];
+    TIE_ORDER.forEach(function (key) {
+      var level = chosen[key] === undefined ? 'medium' : chosen[key];
+      if (!Object.prototype.hasOwnProperty.call(WEIGHTS, level)) {
+        throw new Error('Неизвестная трудность: ' + level);
+      }
+      if (!changes) {
+        return;
+      }
+      if (changes[key].status === 'needed') {
+        scores[key] = roundHalfUp(Math.abs(changes[key].changePct) * WEIGHTS[level], 2);
+        order.push(key);
+      } else {
+        unreachable.push(key);
+      }
+    });
+    order.sort(function (a, b) {
+      return scores[a] - scores[b] || TIE_ORDER.indexOf(a) - TIE_ORDER.indexOf(b);
+    });
+    return { order: order, unreachable: unreachable, first: order.length ? order[0] : null, scores: scores };
+  }
+
+  return {
+    roundHalfUp: roundHalfUp,
+    formatRu: formatRu,
+    formatNearThreshold: formatNearThreshold,
+    parseNumber: parseNumber,
+    validateInputs: validateInputs,
+    calculate: calculate,
+    rankChanges: rankChanges
+  };
+});
+
+</script>
+<script>
+(function (root, factory) {
+  var calc = typeof module === 'object' && module && module.exports ? require('./calc.js') : root.SubEconCalc;
+  var api = factory(calc);
+  if (typeof module === 'object' && module && module.exports) {
+    module.exports = api;
+  } else {
+    root.SubEconView = api;
+  }
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (calc) {
+  function plain(n, minDigits) {
+    return Number(n.toPrecision(12)).toLocaleString('ru-RU', {
+      useGrouping: false,
+      minimumFractionDigits: minDigits || 0,
+      maximumFractionDigits: 20
+    });
+  }
+
+  function share(n) {
+    return plain(n, 2);
+  }
+
+  function decimalsOf(text) {
+    var i = text.indexOf(',');
+    return i === -1 ? 0 : text.length - i - 1;
+  }
+
+  function toNumber(text) {
+    return Number(text.replace(',', '.').replace('−', '-'));
+  }
+
+  function fit(format, minDigits, agrees) {
+    var text = format(minDigits);
+    for (var d = minDigits + 1; d <= 8 && !agrees(text); d++) {
+      text = format(d);
+    }
+    return text;
+  }
+
+  function describeFigures(r) {
+    var v = r.values;
+    var p = plain(v.p);
+    var m = share(v.m);
+    var c = share(v.c);
+    var k = plain(v.k);
+    var ltvReference = Number((v.R * v.k).toPrecision(12));
+    var ltvText = calc.formatNearThreshold(r.ltv, 2, ltvReference, r.ratioPass, 'atLeast');
+    var ratioText = calc.formatNearThreshold(r.ltvCac, 2, v.R, r.ratioPass, 'atLeast');
+    var ratioDigits = decimalsOf(ratioText);
+    var ltvForRatio = fit(function (d) {
+      return calc.formatNearThreshold(r.ltv, d, ltvReference, r.ratioPass, 'atLeast');
+    }, 2, function (text) {
+      return calc.formatRu(toNumber(text) / v.k, ratioDigits) === ratioText;
+    });
+    var paybackValue = calc.formatNearThreshold(r.payback, 1, v.T, r.paybackPass, 'atMost');
+    var paybackFormulaValue = fit(function (d) {
+      return calc.formatNearThreshold(r.payback, d, v.T, r.paybackPass, 'atMost');
+    }, Math.max(2, decimalsOf(paybackValue)), function (text) {
+      return calc.formatRu(toNumber(text), decimalsOf(paybackValue)) === paybackValue;
+    });
+    var lifetimeShort = calc.formatRu(r.lifetime, 1);
+    var lifetimeLong = fit(function (d) {
+      return calc.formatRu(r.lifetime, d);
+    }, 2, function (text) {
+      return calc.formatRu(toNumber(text), 1) === lifetimeShort;
+    });
+    var paybackShown = paybackValue;
+    var lifetimeShown = null;
+    if (paybackValue === lifetimeShort && r.payback !== r.lifetime) {
+      for (var d = 2; d <= 8; d++) {
+        var pText = calc.formatNearThreshold(r.payback, d, v.T, r.paybackPass, 'atMost');
+        var lText = calc.formatRu(r.lifetime, d);
+        if (pText !== lText) {
+          paybackShown = pText;
+          lifetimeShown = lText;
+          break;
+        }
+      }
+    }
+    var beforeLeaving = r.payback < r.lifetime
+      ? 'Окупаемость ' + paybackShown + ' месяца короче срока жизни' + (lifetimeShown ? ' ' + lifetimeShown + ' месяца' : '') + ': клиент успевает окупиться до ухода.'
+      : 'Окупаемость ' + paybackShown + ' месяца не короче срока жизни' + (lifetimeShown ? ' ' + lifetimeShown + ' месяца' : '') + ': в среднем клиент уходит раньше, чем окупится.';
+    return [
+      {
+        key: 'ltv',
+        label: 'LTV, сколько денег клиент приносит за всё время',
+        value: ltvText,
+        tag: null,
+        formula: 'цена × маржа ÷ отток = ' + p + ' × ' + m + ' ÷ ' + c + ' = ' + ltvText,
+        usefulness: 'Сравниваем с CAC: при пороге ' + plain(v.R) + ' клиент должен приносить не меньше, чем CAC × ' + plain(v.R) + ' (стоимость привлечения, умноженная на ' + plain(v.R) + ').'
+      },
+      {
+        key: 'ltvCac',
+        label: 'LTV/CAC, во сколько раз клиент окупает своё привлечение',
+        value: ratioText,
+        tag: { text: 'порог ' + plain(v.R) + (r.ratioPass ? ' пройден' : ' не пройден'), pass: r.ratioPass },
+        formula: 'LTV ÷ CAC = ' + ltvForRatio + ' ÷ ' + k + ' = ' + ratioText,
+        usefulness: 'На каждую потраченную на привлечение единицу приходится ' + ratioText + ' прибыли за всё время жизни клиента.'
+      },
+      {
+        key: 'payback',
+        label: 'Окупаемость, через сколько месяцев клиент вернёт затраты на привлечение',
+        value: paybackValue + ' месяца',
+        tag: { text: 'порог ' + plain(v.T) + (r.paybackPass ? ' пройден' : ' не пройден'), pass: r.paybackPass },
+        formula: 'CAC ÷ (цена × маржа) = ' + k + ' ÷ (' + p + ' × ' + m + ') = ' + paybackFormulaValue,
+        usefulness: 'Через столько месяцев клиент вернёт деньги, потраченные на его привлечение.'
+      },
+      {
+        key: 'lifetime',
+        label: 'Срок жизни, сколько месяцев клиент в среднем остаётся',
+        value: lifetimeShort + ' месяца',
+        tag: null,
+        formula: '1 ÷ отток = 1 ÷ ' + c + ' = ' + lifetimeLong,
+        usefulness: beforeLeaving
+      }
+    ];
+  }
+
+  function describeVerdict(r) {
+    var v = r.values;
+    var ratioText = calc.formatNearThreshold(r.ltvCac, 2, v.R, r.ratioPass, 'atLeast');
+    var paybackText = calc.formatNearThreshold(r.payback, 1, v.T, r.paybackPass, 'atMost');
+    var parts = [
+      'LTV/CAC равен ' + ratioText + ' при пороге ' + plain(v.R) + (r.ratioPass ? ': проходит.' : ': не проходит.'),
+      r.paybackPass
+        ? 'Окупаемость ' + paybackText + ' месяца укладывается в ' + plain(v.T) + '.'
+        : 'Окупаемость ' + paybackText + ' месяца дольше порога ' + plain(v.T) + '.'
+    ];
+    if (r.verdict === 'scale') {
+      parts.push('Оба порога пройдены, можно масштабировать платное привлечение.');
+    } else {
+      parts.push(r.ratioPass || r.paybackPass ? 'Не проходит один порог из двух.' : 'Не проходят оба порога.');
+      parts.push('Сначала улучшите экономику: что именно сдвинуть, показано ниже.');
+    }
+    return {
+      kind: r.verdict,
+      title: r.verdict === 'scale' ? 'Масштабировать' : 'Пока нет',
+      text: parts.join(' ')
+    };
+  }
+
+  var LEVEL_LABELS = { easy: 'легко', medium: 'средне', hard: 'трудно' };
+  var LEVEL_WEIGHTS = { easy: 1, medium: 2, hard: 3 };
+  var ROW_KEYS = ['price', 'cac', 'churn', 'margin'];
+  var ROW_NAMES = { price: 'Цена', cac: 'CAC', churn: 'Отток', margin: 'Маржа' };
+  var ROW_GENITIVE = { price: 'цены', cac: 'CAC', churn: 'оттока', margin: 'маржи' };
+  var ROW_LOWER = { price: 'цена', cac: 'CAC', churn: 'отток', margin: 'маржа' };
+  var UP = ' (округлено вверх)';
+  var DOWN = ' (округлено вниз)';
+  var NO_TARGET = '—';
+
+  var USEFULNESS = {
+    price: 'Показывает, до какой цены нужно поднять подписку, чтобы выполнились оба порога, если остальные три показателя не меняются. Берётся большее из двух значений в скобках: первое нужно для порога LTV/CAC, второе для порога окупаемости.',
+    cac: 'Показывает, до какой стоимости нужно снизить привлечение одного клиента, чтобы выполнились оба порога, если остальные три показателя не меняются. Берётся меньшее из двух значений в скобках: первое нужно для порога LTV/CAC, второе для порога окупаемости.',
+    churn: 'Показывает, до какого оттока нужно его снизить, чтобы выполнился порог LTV/CAC, если остальные три показателя не меняются. Окупаемость от оттока не зависит, поэтому формула учитывает только порог LTV/CAC.',
+    margin: 'Показывает, какой должна стать доля цены, остающаяся после прямых расходов, чтобы выполнились оба порога, если остальные три показателя не меняются. Берётся большее из двух значений в скобках: первое нужно для порога LTV/CAC, второе для порога окупаемости.'
+  };
+
+  function signedPercent(change) {
+    var text = calc.formatNearThreshold(change.changePctExact, 2, 0, false);
+    return (text.charAt(0) === '-' ? '−' + text.slice(1) : '+' + text) + '%';
+  }
+
+  function targetFormula(key, v) {
+    var p = plain(v.p);
+    var m = share(v.m);
+    var c = share(v.c);
+    var k = plain(v.k);
+    var R = plain(v.R);
+    var T = plain(v.T);
+    if (key === 'price') {
+      return 'max(' + R + ' × ' + k + ' × ' + c + ' ÷ ' + m + ' ; ' + k + ' ÷ (' + T + ' × ' + m + '))';
+    }
+    if (key === 'cac') {
+      return 'min(' + p + ' × ' + m + ' ÷ (' + R + ' × ' + c + ') ; ' + T + ' × ' + p + ' × ' + m + ')';
+    }
+    if (key === 'churn') {
+      return p + ' × ' + m + ' ÷ (' + R + ' × ' + k + ') × 100';
+    }
+    return 'max(' + R + ' × ' + k + ' × ' + c + ' ÷ ' + p + ' ; ' + k + ' ÷ (' + T + ' × ' + p + ')) × 100';
+  }
+
+  function overHundred(target) {
+    for (var d = 2; d <= 10; d++) {
+      var shown = calc.roundHalfUp(target, d);
+      if (shown > 100) {
+        return plain(shown) + '%';
+      }
+    }
+    return 'больше 100%';
+  }
+
+  function describeRow(key, r, rank, level, score) {
+    var v = r.values;
+    var change = r.changes[key];
+    var isPercent = key === 'churn' || key === 'margin';
+    var currentNumber = plain(isPercent ? (key === 'churn' ? v.c : v.m) * 100 : key === 'price' ? v.p : v.k);
+    var unit = isPercent ? '%' : '';
+    var rounding = key === 'price' || key === 'margin' ? UP : DOWN;
+    var row = {
+      key: key,
+      name: ROW_NAMES[key],
+      current: currentNumber + unit,
+      target: NO_TARGET,
+      change: 'недостижимо',
+      reachable: change.status === 'needed',
+      reason: null,
+      formula: null,
+      changeFormula: null,
+      usefulness: USEFULNESS[key],
+      scoreText: null,
+      rank: rank
+    };
+    if (change.status === 'needed') {
+      var targetNumber = calc.formatRu(change.target, 2);
+      row.target = targetNumber + unit;
+      row.change = signedPercent(change);
+      row.formula = targetFormula(key, v) + ' = ' + row.target + rounding;
+      row.changeFormula = '(' + targetNumber + ' − ' + currentNumber + ') ÷ ' + currentNumber + ' × 100 = ' + row.change;
+      row.scoreText = 'Оценка: ' + calc.formatRu(Math.abs(change.changePct), 2) + ' × ' + LEVEL_WEIGHTS[level] +
+        ' (' + LEVEL_LABELS[level] + ') = ' + calc.formatRu(score, 2);
+      return row;
+    }
+    if (change.reason === 'over100') {
+      var needed = overHundred(change.target);
+      row.target = needed;
+      row.formula = targetFormula(key, v) + ' = ' + needed;
+      row.reason = 'Маржа не может быть выше 100%, а для порогов понадобилось бы ' + needed + ', то есть больше 100%. Одной маржой порог не достичь.';
+    } else if (change.reason === 'payback') {
+      row.reason = 'Окупаемость от оттока не зависит: она уже дольше порога ' + plain(v.T) + ' месяцев, поэтому снижением оттока вердикт не исправить.';
+    } else {
+      row.formula = targetFormula(key, v) + ' = меньше 0,01';
+      row.reason = 'Нужное значение меньше 0,01: показатель пришлось бы довести почти до нуля, а ноль недопустим. Одним этим показателем порог не достичь.';
+    }
+    return row;
+  }
+
+  function describeChanges(r, difficulty) {
+    var chosen = difficulty || {};
+    var ranking = calc.rankChanges(r.changes, chosen);
+    var rows = ROW_KEYS.map(function (key) {
+      var position = ranking.order.indexOf(key);
+      var level = chosen[key] === undefined ? 'medium' : chosen[key];
+      return describeRow(key, r, position === -1 ? null : position + 1, level, ranking.scores[key]);
+    });
+    var first = ranking.first;
+    var start = null;
+    if (first) {
+      var firstRow = rows[ROW_KEYS.indexOf(first)];
+      var level = chosen[first] === undefined ? 'medium' : chosen[first];
+      start = 'Проще всего начать с ' + ROW_GENITIVE[first] + ': трудность отмечена как «' + LEVEL_LABELS[level] +
+        '», нужное изменение ' + firstRow.change + '.';
+    }
+    var orderText = 'Порядок «с чего начать»: ' + ranking.order.map(function (key) { return ROW_LOWER[key]; }).join(', ') + '.';
+    if (ranking.unreachable.length > 0) {
+      orderText += ' Одним изменением недостижимо: ' + ranking.unreachable.map(function (key) { return ROW_LOWER[key]; }).join(', ') + '.';
+    }
+    return { rows: rows, start: start, orderText: orderText };
+  }
+
+  var LOW_CHURN_WARNING = 'Отток ниже 1% в месяц: средний срок жизни клиента больше 100 месяцев. LTV держится на допущении, что клиенты почти никогда не уходят, поэтому этой цифре стоит доверять с осторожностью. Цифры ниже всё равно показаны.';
+
+  function describe(raw, difficulty) {
+    var r = calc.calculate(raw);
+    if (!r.ok) {
+      return { ok: false, errors: r.errors };
+    }
+    return {
+      ok: true,
+      verdict: describeVerdict(r),
+      warning: r.lowChurnWarning ? LOW_CHURN_WARNING : null,
+      figures: describeFigures(r),
+      changes: r.changes ? describeChanges(r, difficulty) : null,
+      noChanges: r.noChangesNeeded ? 'Изменения не нужны: оба порога уже выполнены.' : null
+    };
+  }
+
+  return { describe: describe };
+});
+
+</script>
+<script>
+(function () {
+  var FIELDS = ['price', 'margin', 'churn', 'cac', 'ratioThreshold', 'paybackThreshold'];
+  var ROWS = ['price', 'cac', 'churn', 'margin'];
+  var SLOTS = ['current', 'target', 'change', 'rank', 'formula', 'changeFormula', 'score', 'reason', 'usefulness'];
+  var touched = {};
+
+  function byId(id) {
+    return document.getElementById(id);
+  }
+
+  function make(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) {
+      node.className = className;
+    }
+    if (text !== undefined) {
+      node.textContent = text;
+    }
+    return node;
+  }
+
+  function setBlock(node, text) {
+    node.textContent = text || '';
+    node.hidden = !text;
+  }
+
+  function readRaw() {
+    var raw = {};
+    FIELDS.forEach(function (field) {
+      raw[field] = byId(field).value;
+    });
+    return raw;
+  }
+
+  function readDifficulty() {
+    var chosen = {};
+    ROWS.forEach(function (key) {
+      chosen[key] = byId('diff-' + key).value;
+    });
+    return chosen;
+  }
+
+  function showErrors(raw, errors) {
+    var shown = 0;
+    FIELDS.forEach(function (field) {
+      var message = errors[field];
+      var visible = Boolean(message) && (raw[field].trim() !== '' || touched[field]);
+      setBlock(byId('err-' + field), visible ? message : '');
+      byId(field).setAttribute('aria-invalid', visible ? 'true' : 'false');
+      if (visible) {
+        shown++;
+      }
+    });
+    setBlock(byId('err-general'), errors.general || '');
+    return shown + (errors.general ? 1 : 0);
+  }
+
+  function clearErrors() {
+    showErrors({ price: '', margin: '', churn: '', cac: '', ratioThreshold: '', paybackThreshold: '' }, {});
+  }
+
+  function renderFigures(figures) {
+    var box = byId('figures');
+    box.textContent = '';
+    figures.forEach(function (figure) {
+      var card = make('div', 'num');
+      var head = make('div', 'v', figure.value + ' ');
+      head.appendChild(make('span', 'note', figure.label));
+      if (figure.tag) {
+        head.appendChild(document.createTextNode(' '));
+        head.appendChild(make('span', 'tag ' + (figure.tag.pass ? 'ok' : 'bad'), figure.tag.text));
+      }
+      card.appendChild(head);
+      card.appendChild(make('div', 'f', figure.formula));
+      card.appendChild(make('div', 'u', figure.usefulness));
+      box.appendChild(card);
+    });
+  }
+
+  function renderRow(row) {
+    var body = document.querySelector('tbody[data-key="' + row.key + '"]');
+    var values = {
+      current: row.current,
+      target: row.target,
+      change: row.change,
+      rank: row.rank === null ? '—' : String(row.rank),
+      formula: row.formula,
+      changeFormula: row.changeFormula,
+      score: row.scoreText,
+      reason: row.reason,
+      usefulness: row.usefulness
+    };
+    SLOTS.forEach(function (slot) {
+      var node = body.querySelector('[data-slot="' + slot + '"]');
+      node.textContent = values[slot] || '';
+      if (node.tagName !== 'TD') {
+        node.hidden = !values[slot];
+      }
+    });
+    ['target', 'change'].forEach(function (slot) {
+      var node = body.querySelector('td[data-slot="' + slot + '"]');
+      node.className = row.reachable ? '' : 'bad';
+    });
+  }
+
+  function renderResults(result) {
+    byId('verdict').className = 'verdict ' + result.verdict.kind;
+    byId('verdict-title').textContent = result.verdict.title;
+    byId('verdict-text').textContent = result.verdict.text;
+    setBlock(byId('warning'), result.warning);
+    renderFigures(result.figures);
+    setBlock(byId('nochanges'), result.noChanges);
+    byId('changes-block').hidden = result.changes === null;
+    if (result.changes) {
+      result.changes.rows.forEach(renderRow);
+      byId('start').textContent = result.changes.start || '';
+      byId('order').textContent = result.changes.orderText;
+    }
+  }
+
+  function render() {
+    var raw = readRaw();
+    var result = SubEconView.describe(raw, readDifficulty());
+    if (!result.ok) {
+      var shown = showErrors(raw, result.errors);
+      byId('results').hidden = true;
+      byId('pending').hidden = false;
+      byId('pending-text').textContent = shown > 0
+        ? 'Цифры и вердикт скрыты, пока в полях есть ошибки.'
+        : 'Введите все четыре показателя, и здесь появятся вердикт и цифры.';
+      return;
+    }
+    clearErrors();
+    byId('pending').hidden = true;
+    byId('results').hidden = false;
+    renderResults(result);
+  }
+
+  byId('form').addEventListener('submit', function (event) {
+    event.preventDefault();
+  });
+  function markTouched(event) {
+    if (FIELDS.indexOf(event.target.id) !== -1) {
+      touched[event.target.id] = true;
+    }
+    render();
+  }
+
+  byId('form').addEventListener('input', markTouched);
+  byId('form').addEventListener('focusout', markTouched);
+  render();
+})();
+</script>
+</body>
+</html>
